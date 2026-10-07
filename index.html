@@ -172,8 +172,8 @@ footer{color:var(--muted);font-size:.8rem}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-/* Motor de llenado Master ISN — trabaja directo sobre el XML del .xlsx
-   para no tocar fórmulas, estilos ni las hojas protegidas. */
+/* Motor de llenado Master ISN \u2014 trabaja directo sobre el XML del .xlsx
+   para no tocar f\u00f3rmulas, estilos ni las hojas protegidas. */
 (function (global) {
   'use strict';
   const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
@@ -182,7 +182,7 @@ footer{color:var(--muted);font-size:.8rem}
   const PROTECTED = ['EMPLEADOS', 'EXENTO-GRAV', 'OC'];
 
   /* ---------- utilidades ---------- */
-  const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, ' ').trim().toUpperCase();
   function colToNum(s) { let n = 0; for (const ch of s.toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64); return n; }
   function numToCol(n) { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
@@ -192,8 +192,8 @@ footer{color:var(--muted);font-size:.8rem}
   const kids = (parent, name) => Array.from(parent.childNodes).filter((n) => n.nodeType === 1 && n.localName === name);
   const kid = (parent, name) => kids(parent, name)[0] || null;
 
-  /* ---------- referencias en fórmulas ---------- */
-  const REF_RE = /(?<![A-Za-z0-9_.$\]'À- ])((?:'(?:[^']|'')+'|\[\d+\][^!'"\s(),;]+|[A-Za-z_À- ][A-Za-z0-9_.À- ]*)!)?(\$?[A-Z]{1,3}\$?\d{1,7}(?::\$?[A-Z]{1,3}\$?\d{1,7})?|\$?\d{1,7}:\$?\d{1,7}|\$?[A-Z]{1,3}:\$?[A-Z]{1,3})(?![A-Za-z0-9_(!\[À- ])/g;
+  /* ---------- referencias en f\u00f3rmulas ---------- */
+  const REF_RE = /(?<![A-Za-z0-9_.$\]'\u00c0-\uffff])((?:'(?:[^']|'')+'|\[\d+\][^!'"\s(),;]+|[A-Za-z_\u00c0-\uffff][A-Za-z0-9_.\u00c0-\uffff]*)!)?(\$?[A-Z]{1,3}\$?\d{1,7}(?::\$?[A-Z]{1,3}\$?\d{1,7})?|\$?\d{1,7}:\$?\d{1,7}|\$?[A-Z]{1,3}:\$?[A-Z]{1,3})(?![A-Za-z0-9_(!\[\u00c0-\uffff])/g;
 
   // aplica fn(prefix, ref) solo fuera de literales de texto
   function mapRefs(formula, fn) {
@@ -231,7 +231,7 @@ footer{color:var(--muted);font-size:.8rem}
     return o.cAbs + numToCol(o.col);
   }
 
-  // Transformación de filas por inserción/eliminación.
+  // Transformaci\u00f3n de filas por inserci\u00f3n/eliminaci\u00f3n.
   // op = {kind:'ins', k, n, lastData, extend:bool} | {kind:'del', a, b}
   function mapRow(r, op) {
     if (op.kind === 'ins') return r >= op.k ? Math.min(r + op.n, MAXROW) : r;
@@ -249,7 +249,7 @@ footer{color:var(--muted);font-size:.8rem}
     const n2 = r2 === MAXROW ? MAXROW : (r2 < op.a ? r2 : r2 > op.b ? r2 - cnt : op.a - 1);
     return n2 < n1 ? null : [n1, n2];
   }
-  // transforma una referencia (sin prefijo) según op; null => #REF!
+  // transforma una referencia (sin prefijo) seg\u00fan op; null => #REF!
   function shiftRefText(ref, op, extend) {
     const parts = ref.split(':').map(parsePart);
     if (parts.some((p) => !p)) return ref;
@@ -273,7 +273,7 @@ footer{color:var(--muted);font-size:.8rem}
       return prefix + (nr == null ? '#REF!' : nr);
     });
   }
-  // copiar fórmula desplazada dr filas / dc columnas (solo partes relativas)
+  // copiar f\u00f3rmula desplazada dr filas / dc columnas (solo partes relativas)
   function translateFormula(f, dr, dc) {
     if (!dr && !dc) return f;
     return mapRefs(f, (prefix, ref) => {
@@ -295,7 +295,7 @@ footer{color:var(--muted);font-size:.8rem}
   /* ---------- lectura del libro master ---------- */
   function parseXml(text) {
     const d = new DOMParser().parseFromString(text, 'application/xml');
-    if (d.getElementsByTagName('parsererror').length) throw new Error('XML inválido');
+    if (d.getElementsByTagName('parsererror').length) throw new Error('XML inv\u00e1lido');
     return d;
   }
   function serialize(doc) {
@@ -375,8 +375,8 @@ footer{color:var(--muted);font-size:.8rem}
       const c = cellsOf(m.get(r)).find((x) => cellCol(x) === hdrCol);
       if (c && norm(cellText(c, sst)).startsWith('TOTAL')) { totRow = r; break; }
     }
-    if (totRow == null) return { error: 'No se encontró la fila "Total"', hdrRow, hdrCol, lastCol, headers };
-    // última fila de datos según las fórmulas de la fila de totales
+    if (totRow == null) return { error: 'No se encontr\u00f3 la fila "Total"', hdrRow, hdrCol, lastCol, headers };
+    // \u00faltima fila de datos seg\u00fan las f\u00f3rmulas de la fila de totales
     let lastData = null;
     for (const c of cellsOf(m.get(totRow))) {
       const f = kid(c, 'f'); if (!f || !f.textContent) continue;
@@ -417,7 +417,7 @@ footer{color:var(--muted);font-size:.8rem}
       }
       return { name, sheet: sn, headers, records, totals };
     }
-    throw new Error('No se encontró el encabezado "Clave Empleado"');
+    throw new Error('No se encontr\u00f3 el encabezado "Clave Empleado"');
   }
   const baseName = (p) => p.split('/').pop().replace(/\.[^.]+$/, '');
   const toks = (s) => s.split('_').map((p) => p.toUpperCase().replace(/[^A-Z0-9]/g, '')).filter(Boolean);
@@ -444,7 +444,7 @@ footer{color:var(--muted);font-size:.8rem}
     // percepciones (1-xxx) del acumulado que no tienen columna en el master
     const missing = acum.headers.filter((h, i) => /^1-\d/.test(norm(h)) && !usedIdx.has(i) &&
       acum.records.some((r) => typeof r[i] === 'number' && r[i] !== 0));
-    // validación de totales
+    // validaci\u00f3n de totales
     const checks = mapped.filter((m) => !/CLAVE|NOM/.test(norm(m.header))).map((m) => {
       const sum = acum.records.reduce((s, r) => s + (typeof r[m.src] === 'number' ? r[m.src] : 0), 0);
       const tot = acum.totals && typeof acum.totals[m.src] === 'number' ? acum.totals[m.src] : null;
@@ -472,7 +472,7 @@ footer{color:var(--muted);font-size:.8rem}
   function applyOpToSheet(doc, sheetName, op, info) {
     const { sd, m } = rowMap(doc);
     const dataTop = info.hdrRow + 1, dataBot = info.lastData;
-    // fórmulas
+    // f\u00f3rmulas
     for (const f of els(doc, 'f')) {
       const c = f.parentNode; const at = splitAddr(c.getAttribute('r'));
       const inData = at.row >= dataTop && at.row <= dataBot;
@@ -513,7 +513,7 @@ footer{color:var(--muted);font-size:.8rem}
     }
   }
 
-  // copia una celda plantilla a otra fila: conserva estilo, ajusta fórmula, sin valores
+  // copia una celda plantilla a otra fila: conserva estilo, ajusta f\u00f3rmula, sin valores
   function cloneCellTo(c, col, r, dr) {
     const nc = c.cloneNode(true); nc.setAttribute('r', addr(col, r));
     const f = kid(nc, 'f');
@@ -525,7 +525,7 @@ footer{color:var(--muted);font-size:.8rem}
     } else nc.removeAttribute('cm');
     return nc;
   }
-  // última fila de datos que trae fórmulas (es la plantilla de las filas nuevas)
+  // \u00faltima fila de datos que trae f\u00f3rmulas (es la plantilla de las filas nuevas)
   function templateRow(doc, info) {
     const { m } = rowMap(doc);
     for (let r = info.lastData; r > info.hdrRow; r--) {
@@ -560,8 +560,8 @@ footer{color:var(--muted);font-size:.8rem}
     info.lastData += n; info.totRow += n; info.slots += n;
   }
 
-  // filas de datos del master que venían sin las fórmulas de la tabla: se completan
-  // solo en celdas vacías, copiando la fórmula de la fila plantilla
+  // filas de datos del master que ven\u00edan sin las f\u00f3rmulas de la tabla: se completan
+  // solo en celdas vac\u00edas, copiando la f\u00f3rmula de la fila plantilla
   function completeFormulas(doc, info) {
     const tplNum = templateRow(doc, info);
     const { m } = rowMap(doc); const tpl = m.get(tplNum); if (!tpl) return 0;
@@ -615,7 +615,7 @@ footer{color:var(--muted);font-size:.8rem}
       target = doc.createElementNS(NS, 'c'); target.setAttribute('r', addr(col, rowNum));
       rowEl.insertBefore(target, before);
     }
-    if (kid(target, 'f')) return false; // nunca se escribe sobre una fórmula
+    if (kid(target, 'f')) return false; // nunca se escribe sobre una f\u00f3rmula
     for (const ch of Array.from(target.childNodes)) target.removeChild(ch);
     target.removeAttribute('t');
     if (val === null || val === undefined || val === '') return true;
@@ -682,12 +682,12 @@ footer{color:var(--muted);font-size:.8rem}
       if (want > info.slots) { const n = want - info.slots; insertRows(doc, sheetName, info, n); action = `+${n} filas`; }
       else if (want < info.slots) {
         const a = info.hdrRow + 1 + want, b = info.lastData;
-        if (rowsSafeToDelete(doc, info, a, b)) { deleteRows(doc, sheetName, info, a, b); action = `−${b - a + 1} filas`; }
-        else { action = 'sin eliminar'; note = `Quedan ${b - a + 1} filas vacías: comparten renglón con otra tabla de la hoja.`; }
+        if (rowsSafeToDelete(doc, info, a, b)) { deleteRows(doc, sheetName, info, a, b); action = `\u2212${b - a + 1} filas`; }
+        else { action = 'sin eliminar'; note = `Quedan ${b - a + 1} filas vac\u00edas: comparten rengl\u00f3n con otra tabla de la hoja.`; }
       }
       unshareFormulas(doc);
       const filled = completeFormulas(doc, info);
-      if (filled) note = (note ? note + ' ' : '') + `Se completaron ${filled} fórmulas en filas de la plantilla que venían sin ellas.`;
+      if (filled) note = (note ? note + ' ' : '') + `Se completaron ${filled} f\u00f3rmulas en filas de la plantilla que ven\u00edan sin ellas.`;
       // escribir valores
       let written = 0;
       for (let i = 0; i < info.slots; i++) {
@@ -698,7 +698,7 @@ footer{color:var(--muted);font-size:.8rem}
           if (setCellValue(doc, rowEl, mp.col, r, v) && rec && v !== null && v !== '') written++;
         }
       }
-      // quitar resultados en caché de las fórmulas para que se recalculen al abrir
+      // quitar resultados en cach\u00e9 de las f\u00f3rmulas para que se recalculen al abrir
       for (const f of els(doc, 'f')) { const c = f.parentNode; for (const v of kids(c, 'v')) c.removeChild(v); c.removeAttribute('t'); }
       fresh.zip.file(sh.path, serialize(doc));
       report.push({ sheet: sheetName, file: acum.name, employees: N, action, note, columns: cols.mapped.length, cells: written,
@@ -729,7 +729,7 @@ footer{color:var(--muted);font-size:.8rem}
       }
       fresh.zip.file('xl/workbook.xml', serialize(wb));
     }
-    // recalcular al abrir y descartar la cadena de cálculo (Excel la reconstruye)
+    // recalcular al abrir y descartar la cadena de c\u00e1lculo (Excel la reconstruye)
     {
       const wbx = await fresh.zip.file('xl/workbook.xml').async('string');
       const wb = parseXml(wbx);
@@ -775,6 +775,7 @@ footer{color:var(--muted);font-size:.8rem}
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   let masterFile = null, acumFiles = [], state = null, assign = {}, result = null, masterName = 'Master ISN';
 
+  if (!window.ISN || !window.JSZip || !window.XLSX) setTimeout(() => setStatus('No se cargaron los componentes de la p\u00e1gina. Recarga con Ctrl+F5; si sigue, revisa que tu red permita cdnjs.cloudflare.com.', 'err'), 0);
   function setStatus(t, cls) { const s = $('status'); s.textContent = t; s.className = 'status' + (cls ? ' ' + cls : ''); }
 
   function wireDrop(drop, input, onFiles) {
@@ -792,7 +793,7 @@ footer{color:var(--muted);font-size:.8rem}
     refresh();
   });
   wireDrop($('dropAcum'), $('inAcum'), async (fs) => {
-    setStatus('Leyendo acumulados…');
+    setStatus('Leyendo acumulados\u2026');
     try {
       acumFiles = await ISN.expandUploads(fs);
       $('dropAcum').classList.add('done'); $('aDesc').hidden = true;
@@ -806,7 +807,7 @@ footer{color:var(--muted);font-size:.8rem}
   async function refresh() {
     result = null; $('btnSave').hidden = true;
     if (!masterFile || !acumFiles.length) { $('btnGen').disabled = true; return; }
-    setStatus('Analizando…');
+    setStatus('Analizando\u2026');
     try {
       state = await ISN.analyze(await masterFile.arrayBuffer(), acumFiles);
       assign = {};
@@ -824,32 +825,32 @@ footer{color:var(--muted);font-size:.8rem}
     for (const a of state.acums) {
       const tr = document.createElement('tr');
       if (a.error) {
-        tr.innerHTML = `<td class="file">${esc(a.name)}</td><td colspan="5" class="idle">${esc(a.error)}</td><td><span class="pill p-bad">No se leyó</span></td>`;
+        tr.innerHTML = `<td class="file">${esc(a.name)}</td><td colspan="5" class="idle">${esc(a.error)}</td><td><span class="pill p-bad">No se ley\u00f3</span></td>`;
         tb.appendChild(tr); alerts++; continue;
       }
       const sel = assign[a.name] || '';
-      const opts = ['<option value="">— no llenar —</option>'].concat(state.targetNames.map((n) => `<option value="${esc(n)}"${n === sel ? ' selected' : ''}>${esc(n)}</option>`)).join('');
-      let cells = `<td class="file">${esc(a.name)}</td><td><select data-f="${esc(a.name)}" aria-label="Pestaña para ${esc(a.name)}">${opts}</select></td><td class="n">${a.records.length}</td>`;
+      const opts = ['<option value="">\u2014 no llenar \u2014</option>'].concat(state.targetNames.map((n) => `<option value="${esc(n)}"${n === sel ? ' selected' : ''}>${esc(n)}</option>`)).join('');
+      let cells = `<td class="file">${esc(a.name)}</td><td><select data-f="${esc(a.name)}" aria-label="Pesta\u00f1a para ${esc(a.name)}">${opts}</select></td><td class="n">${a.records.length}</td>`;
       if (!sel) {
-        cells += `<td class="n">—</td><td><span class="pill p-neutral">Sin pestaña</span></td><td class="n">—</td><td><span class="pill p-warn">Elegir pestaña</span></td>`;
+        cells += `<td class="n">\u2014</td><td><span class="pill p-neutral">Sin pesta\u00f1a</span></td><td class="n">\u2014</td><td><span class="pill p-warn">Elegir pesta\u00f1a</span></td>`;
         alerts++;
       } else {
         const p = ISN.planFor(state.master, a, sel);
         emp += a.records.length; ready++;
         const isDup = counts[sel] > 1; if (isDup) dup = true;
-        const adj = p.delta > 0 ? `<span class="pill p-acc">+${p.delta} ${p.delta === 1 ? 'fila' : 'filas'}</span>` : p.delta < 0 ? `<span class="pill p-acc">−${-p.delta} ${p.delta === -1 ? 'fila' : 'filas'}</span>` : '<span class="pill p-neutral">Igual</span>';
+        const adj = p.delta > 0 ? `<span class="pill p-acc">+${p.delta} ${p.delta === 1 ? 'fila' : 'filas'}</span>` : p.delta < 0 ? `<span class="pill p-acc">\u2212${-p.delta} ${p.delta === -1 ? 'fila' : 'filas'}</span>` : '<span class="pill p-neutral">Igual</span>';
         const badChecks = p.checks.filter((c) => !c.ok);
         let val;
-        if (isDup) { val = '<span class="pill p-bad">Pestaña repetida</span>'; alerts++; }
+        if (isDup) { val = '<span class="pill p-bad">Pesta\u00f1a repetida</span>'; alerts++; }
         else if (p.missing.length) { val = `<span class="pill p-warn">${p.missing.length} sin columna</span>`; alerts++; }
         else if (badChecks.length) { val = '<span class="pill p-warn">Total no cuadra</span>'; alerts++; }
         else val = '<span class="pill p-ok">Cuadra</span>';
-        const colList = p.mapped.map((m) => `<li>${esc(m.header)}</li>`).join('') + p.missing.map((h) => `<li class="miss" title="Percepción con importe que no tiene columna en la pestaña">${esc(h)}</li>`).join('');
+        const colList = p.mapped.map((m) => `<li>${esc(m.header)}</li>`).join('') + p.missing.map((h) => `<li class="miss" title="Percepci\u00f3n con importe que no tiene columna en la pesta\u00f1a">${esc(h)}</li>`).join('');
         const sumSal = p.checks.find((c) => /^1-002/.test(c.header));
         cells += `<td class="n">${p.slots}</td><td>${adj}</td><td class="n">${p.mapped.length}</td><td>${val}`
           + (sumSal ? `<div class="sub">Salario ${fmt.format(sumSal.sum)}</div>` : '')
           + `<details><summary>Ver columnas</summary><ul class="cols">${colList}</ul>`
-          + (p.missing.length ? `<div class="sub">En rojo: percepciones del acumulado que no tienen columna en esta pestaña; no se copian.</div>` : '')
+          + (p.missing.length ? `<div class="sub">En rojo: percepciones del acumulado que no tienen columna en esta pesta\u00f1a; no se copian.</div>` : '')
           + (badChecks.length ? `<div class="sub">${badChecks.map((c) => esc(c.header) + ': suma ' + fmt.format(c.sum) + ' vs total ' + fmt.format(c.tot)).join('<br>')}</div>` : '')
           + `</details></td>`;
       }
@@ -858,20 +859,20 @@ footer{color:var(--muted);font-size:.8rem}
     tb.querySelectorAll('select').forEach((s) => s.addEventListener('change', () => { assign[s.dataset.f] = s.value; result = null; $('btnSave').hidden = true; render(); }));
     const used = new Set(Object.values(assign).filter(Boolean));
     const rest = state.targetNames.filter((n) => !used.has(n));
-    $('untouched').textContent = rest.length ? 'Pestañas sin acumulado (se quedan como están): ' + rest.join(', ') + '.' : 'Todas las pestañas del Master tienen acumulado.';
-    $('summary').innerHTML = `<div class="stat"><strong>${ready}</strong><span>pestañas a llenar</span></div><div class="stat"><strong>${emp}</strong><span>empleados</span></div><div class="stat"><strong>${alerts}</strong><span>${alerts === 1 ? 'alerta' : 'alertas'}</span></div>`;
+    $('untouched').textContent = rest.length ? 'Pesta\u00f1as sin acumulado (se quedan como est\u00e1n): ' + rest.join(', ') + '.' : 'Todas las pesta\u00f1as del Master tienen acumulado.';
+    $('summary').innerHTML = `<div class="stat"><strong>${ready}</strong><span>pesta\u00f1as a llenar</span></div><div class="stat"><strong>${emp}</strong><span>empleados</span></div><div class="stat"><strong>${alerts}</strong><span>${alerts === 1 ? 'alerta' : 'alertas'}</span></div>`;
     $('btnGen').disabled = !ready || dup;
-    if (dup) setStatus('Dos archivos apuntan a la misma pestaña. Corrige la selección para continuar.', 'err');
-    else if (!result) setStatus(ready ? 'Revisa la tabla y genera el Master.' : 'Ningún archivo tiene pestaña asignada.');
+    if (dup) setStatus('Dos archivos apuntan a la misma pesta\u00f1a. Corrige la selecci\u00f3n para continuar.', 'err');
+    else if (!result) setStatus(ready ? 'Revisa la tabla y genera el Master.' : 'Ning\u00fan archivo tiene pesta\u00f1a asignada.');
   }
 
   $('btnGen').addEventListener('click', async () => {
-    $('btnGen').disabled = true; setStatus('Generando…');
+    $('btnGen').disabled = true; setStatus('Generando\u2026');
     try {
       result = await ISN.build(state, assign);
       const notes = result.report.filter((r) => r.note).map((r) => r.sheet + ': ' + r.note);
       const filas = result.report.reduce((s, r) => s + r.employees, 0);
-      setStatus(`Listo: ${result.report.length} pestañas llenadas con ${filas} empleados.` + (notes.length ? ' ' + notes.join(' ') : ''), 'ok');
+      setStatus(`Listo: ${result.report.length} pesta\u00f1as llenadas con ${filas} empleados.` + (notes.length ? ' ' + notes.join(' ') : ''), 'ok');
       $('btnSave').hidden = false;
     } catch (e) { console.error(e); setStatus('No se pudo generar: ' + (e.message || e), 'err'); }
     $('btnGen').disabled = false;
@@ -886,7 +887,7 @@ footer{color:var(--muted);font-size:.8rem}
       catch (e) {
         if (e && e.code === 'declined') setStatus('Descarga cancelada.');
         else if (e && e.code === 'rate_limited') setStatus('Ya hay una descarga pendiente de confirmar.');
-        else setStatus('No se pudo descargar aquí (' + ((e && e.code) || 'error') + ').', 'err');
+        else setStatus('No se pudo descargar aqu\u00ed (' + ((e && e.code) || 'error') + ').', 'err');
       }
       return;
     }
