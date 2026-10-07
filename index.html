@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body style="margin:0">
+<title>Llenado Master ISN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: una columna de trabajo — carga (2 tarjetas) → revisión por hoja (tabla) → generar */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --sunk:#e9eeec; --line:#d3dbd8; --ink:#16211e; --muted:#5b6b66;
+  --accent:#0f6b5c; --accent-ink:#ffffff; --accent-soft:#d9ece7;
+  --ok:#1d7a46; --ok-soft:#dcefe3; --warn:#9a5b00; --warn-soft:#f6e9d2; --bad:#b3261e; --bad-soft:#f7dedb;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101614; --surface:#18201e; --sunk:#1f2926; --line:#2e3a37; --ink:#e4ebe8; --muted:#97a7a2;
+  --accent:#4cc2a8; --accent-ink:#0b1a16; --accent-soft:#1d3a33;
+  --ok:#6fd39a; --ok-soft:#1c3427; --warn:#e8b25a; --warn-soft:#3a2d17; --bad:#f08a80; --bad-soft:#3d1f1c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101614; --surface:#18201e; --sunk:#1f2926; --line:#2e3a37; --ink:#e4ebe8; --muted:#97a7a2;
+  --accent:#4cc2a8; --accent-ink:#0b1a16; --accent-soft:#1d3a33;
+  --ok:#6fd39a; --ok-soft:#1c3427; --warn:#e8b25a; --warn-soft:#3a2d17; --bad:#f08a80; --bad-soft:#3d1f1c; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body)}
+.wrap{max-width:1100px;margin:0 auto;padding:28px 20px 64px;display:grid;gap:28px}
+h1,h2{font-family:var(--f-display);font-weight:700;letter-spacing:.005em;text-wrap:balance;margin:0}
+h1{font-size:2rem;line-height:1.1}
+h2{font-size:1.15rem}
+.lede{color:var(--muted);max-width:68ch;margin:6px 0 0}
+.eyebrow{font:500 .72rem/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+header{display:grid;gap:6px}
+
+.uploads{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.drop{position:relative;display:grid;gap:10px;align-content:start;background:var(--surface);border:1.5px dashed var(--line);border-radius:10px;padding:18px;cursor:pointer;transition:border-color .15s,background .15s;min-width:0}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.drop.done{border-style:solid;border-color:var(--accent)}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.drop .step{display:flex;align-items:center;gap:10px}
+.num{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--sunk);color:var(--ink);font:600 .8rem/1 var(--f-mono)}
+.done .num{background:var(--accent);color:var(--accent-ink)}
+.drop p{margin:0;color:var(--muted);font-size:.9rem}
+.fname{font:500 .85rem/1.35 var(--f-mono);color:var(--ink);word-break:break-all}
+.fmeta{font-size:.82rem;color:var(--muted)}
+
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--sunk);border-radius:8px;padding:12px 14px;font-size:.88rem;color:var(--muted)}
+.note b{color:var(--ink);font-weight:600}
+.lock{flex:none;margin-top:2px}
+
+.summary{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:baseline}
+.stat{display:flex;gap:6px;align-items:baseline}
+.stat strong{font:600 1.35rem/1 var(--f-display);font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:.85rem}
+
+.tablebox{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:.88rem;min-width:820px}
+th{font:500 .7rem/1.2 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--sunk);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.n{font-variant-numeric:tabular-nums;text-align:right;font-family:var(--f-mono)}
+th.n{text-align:right}
+.file{font:.8rem/1.35 var(--f-mono);word-break:break-all;max-width:260px}
+select{font:inherit;font-size:.85rem;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:5px 8px;max-width:170px}
+select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pill{display:inline-block;font:500 .74rem/1 var(--f-mono);padding:5px 8px;border-radius:999px;white-space:nowrap}
+.p-ok{background:var(--ok-soft);color:var(--ok)}
+.p-warn{background:var(--warn-soft);color:var(--warn)}
+.p-bad{background:var(--bad-soft);color:var(--bad)}
+.p-neutral{background:var(--sunk);color:var(--muted)}
+.p-acc{background:var(--accent-soft);color:var(--accent)}
+details{margin-top:6px}
+summary{cursor:pointer;color:var(--accent);font-size:.8rem}
+.cols{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:4px}
+.cols li{font:.72rem/1.2 var(--f-mono);background:var(--sunk);padding:3px 6px;border-radius:4px}
+.cols li.miss{background:var(--bad-soft);color:var(--bad)}
+.sub{color:var(--muted);font-size:.8rem;margin-top:4px}
+.idle{color:var(--muted);font-size:.85rem}
+
+.actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+button{font:600 .95rem/1 var(--f-body);border:0;border-radius:8px;padding:12px 18px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+button.secondary{background:var(--surface);color:var(--accent);border:1.5px solid var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.status{font-size:.9rem;color:var(--muted)}
+.status.err{color:var(--bad)}
+.status.ok{color:var(--ok)}
+
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px}
+.how h3{margin:0 0 6px;font:600 .95rem/1.3 var(--f-body)}
+.how p{margin:0;color:var(--muted);font-size:.88rem}
+.map{font:.78rem/1.6 var(--f-mono);background:var(--sunk);border-radius:6px;padding:10px 12px;margin-top:8px;overflow-x:auto;white-space:nowrap}
+.map b{color:var(--accent);font-weight:500}
+footer{color:var(--muted);font-size:.8rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Impuesto sobre nómina</span>
+    <h1>Llenado Master ISN</h1>
+    <p class="lede">Carga el Master vacío y el ZIP de acumulados por empresa y estado. La página llena cada pestaña con los datos de su acumulado, ajusta las filas al número de empleados y deja intactas fórmulas, formatos y la fila de totales.</p>
+  </header>
+
+  <section class="uploads" aria-label="Archivos">
+    <label class="drop" id="dropMaster">
+      <input type="file" id="inMaster" accept=".xlsx,.xlsm">
+      <div class="step"><span class="num">1</span><h2>Master ISN</h2></div>
+      <p id="mDesc">Archivo .xlsx con las pestañas por empresa y estado.</p>
+      <div class="fname" id="mName" hidden></div>
+      <div class="fmeta" id="mMeta" hidden></div>
+    </label>
+    <label class="drop" id="dropAcum">
+      <input type="file" id="inAcum" accept=".zip,.xls,.xlsx" multiple>
+      <div class="step"><span class="num">2</span><h2>Acumulados</h2></div>
+      <p id="aDesc">ZIP con un Excel por empresa y estado (también puedes soltar los .xls sueltos).</p>
+      <div class="fname" id="aName" hidden></div>
+      <div class="fmeta" id="aMeta" hidden></div>
+    </label>
+  </section>
+
+  <div class="note">
+    <svg class="lock" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+    <span>Las pestañas <b>Empleados</b>, <b>Exento-Grav</b> y <b>OC</b> no se modifican. Los archivos se procesan en tu navegador; no se suben a ningún servidor.</span>
+  </div>
+
+  <section id="howBox" class="how" aria-label="Cómo funciona">
+    <div>
+      <h3>Cada archivo va a su pestaña</h3>
+      <p>Se toma la empresa y el estado del nombre del archivo. Si alguno no se reconoce, eliges la pestaña a mano en la tabla.</p>
+      <div class="map">ACUM_09 Septiembre_<b>CHO_CDMX</b>_prov.XLS → <b>CHO_CDMX</b><br>ACUM_09 Septiembre_<b>VGO_EdoMex</b>_prov.XLS → <b>VGO_Edo Mex</b><br>ACUM_09 Septiembre_<b>CHS</b>_prov.XLS → <b>CHS</b></div>
+    </div>
+    <div>
+      <h3>Se llenan los encabezados que coinciden</h3>
+      <p>Clave Empleado, Nom Empleado y cada concepto (1-002 SALARIO, 2-503 VACACIONES, 4-408 PROVISION ISN…) se copian solo si el encabezado existe en la pestaña. Las columnas con fórmula nunca se escriben.</p>
+    </div>
+    <div>
+      <h3>La tabla se adapta, el Total se queda</h3>
+      <p>Si hay más empleados que filas, se insertan filas con las mismas fórmulas; si hay menos, se quitan las sobrantes. Los rangos del Total (SUM, COUNTA) se ajustan solos.</p>
+    </div>
+  </section>
+
+  <section id="review" hidden aria-label="Revisión">
+    <div style="display:grid;gap:14px">
+      <div class="summary" id="summary"></div>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>Archivo acumulado</th><th>Pestaña del Master</th><th class="n">Empleados</th><th class="n">Filas en Master</th><th>Ajuste</th><th class="n">Columnas</th><th>Validación</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="sub" id="untouched"></div>
+    </div>
+  </section>
+
+  <section class="actions">
+    <button id="btnGen" disabled>Generar Master lleno</button>
+    <button id="btnSave" class="secondary" hidden>Descargar Excel</button>
+    <span class="status" id="status">Carga los dos archivos para empezar.</span>
+  </section>
+
+  <footer>Creado por Jair Betancourt</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* Motor de llenado Master ISN — trabaja directo sobre el XML del .xlsx
+   para no tocar fórmulas, estilos ni las hojas protegidas. */
+(function (global) {
+  'use strict';
+  const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+  const XML_NS = 'http://www.w3.org/XML/1998/namespace';
+  const MAXROW = 1048576;
+  const PROTECTED = ['EMPLEADOS', 'EXENTO-GRAV', 'OC'];
+
+  /* ---------- utilidades ---------- */
+  const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ').trim().toUpperCase();
+  function colToNum(s) { let n = 0; for (const ch of s.toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64); return n; }
+  function numToCol(n) { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+  function splitAddr(a) { const m = /^\$?([A-Z]{1,3})\$?(\d+)$/.exec(a); return m ? { col: colToNum(m[1]), row: +m[2] } : null; }
+  const addr = (col, row) => numToCol(col) + row;
+  const els = (parent, name) => Array.from(parent.getElementsByTagNameNS(NS, name));
+  const kids = (parent, name) => Array.from(parent.childNodes).filter((n) => n.nodeType === 1 && n.localName === name);
+  const kid = (parent, name) => kids(parent, name)[0] || null;
+
+  /* ---------- referencias en fórmulas ---------- */
+  const REF_RE = /(?<![A-Za-z0-9_.$\]'À- ])((?:'(?:[^']|'')+'|\[\d+\][^!'"\s(),;]+|[A-Za-z_À- ][A-Za-z0-9_.À- ]*)!)?(\$?[A-Z]{1,3}\$?\d{1,7}(?::\$?[A-Z]{1,3}\$?\d{1,7})?|\$?\d{1,7}:\$?\d{1,7}|\$?[A-Z]{1,3}:\$?[A-Z]{1,3})(?![A-Za-z0-9_(!\[À- ])/g;
+
+  // aplica fn(prefix, ref) solo fuera de literales de texto
+  function mapRefs(formula, fn) {
+    let out = '', i = 0;
+    while (i < formula.length) {
+      const q = formula.indexOf('"', i);
+      const seg = q < 0 ? formula.slice(i) : formula.slice(i, q);
+      out += seg.replace(REF_RE, (m, prefix, ref) => fn(prefix || '', ref));
+      if (q < 0) break;
+      let j = q + 1;
+      while (j < formula.length) { if (formula[j] === '"') { if (formula[j + 1] === '"') { j += 2; continue; } break; } j++; }
+      out += formula.slice(q, j + 1); i = j + 1;
+    }
+    return out;
+  }
+  function prefixSheet(prefix) {
+    if (!prefix) return null;
+    let p = prefix.slice(0, -1);
+    if (p.startsWith('[')) return '\u0000external';
+    if (p.startsWith("'")) p = p.slice(1, -1).replace(/''/g, "'");
+    if (/^\[\d+\]/.test(p)) return '\u0000external';
+    return p;
+  }
+  // parte de una referencia: {kind:'cell'|'row'|'col', ...}
+  function parsePart(p) {
+    let m = /^(\$?)([A-Z]{1,3})(\$?)(\d+)$/.exec(p);
+    if (m) return { kind: 'cell', cAbs: m[1], col: colToNum(m[2]), rAbs: m[3], row: +m[4] };
+    m = /^(\$?)(\d+)$/.exec(p); if (m) return { kind: 'row', rAbs: m[1], row: +m[2] };
+    m = /^(\$?)([A-Z]{1,3})$/.exec(p); if (m) return { kind: 'col', cAbs: m[1], col: colToNum(m[2]) };
+    return null;
+  }
+  function fmtPart(o) {
+    if (o.kind === 'cell') return o.cAbs + numToCol(o.col) + o.rAbs + o.row;
+    if (o.kind === 'row') return o.rAbs + o.row;
+    return o.cAbs + numToCol(o.col);
+  }
+
+  // Transformación de filas por inserción/eliminación.
+  // op = {kind:'ins', k, n, lastData, extend:bool} | {kind:'del', a, b}
+  function mapRow(r, op) {
+    if (op.kind === 'ins') return r >= op.k ? Math.min(r + op.n, MAXROW) : r;
+    const cnt = op.b - op.a + 1;
+    if (r < op.a) return r; if (r > op.b) return r - cnt; return null;
+  }
+  function mapRange(r1, r2, op, extend) {
+    if (op.kind === 'ins') {
+      let n1 = mapRow(r1, op), n2 = r2 === MAXROW ? MAXROW : mapRow(r2, op);
+      if (extend && r2 === op.lastData && r1 <= op.lastData) n2 = r2 + op.n;
+      return [n1, n2];
+    }
+    const cnt = op.b - op.a + 1;
+    const n1 = r1 < op.a ? r1 : r1 > op.b ? r1 - cnt : op.a;
+    const n2 = r2 === MAXROW ? MAXROW : (r2 < op.a ? r2 : r2 > op.b ? r2 - cnt : op.a - 1);
+    return n2 < n1 ? null : [n1, n2];
+  }
+  // transforma una referencia (sin prefijo) según op; null => #REF!
+  function shiftRefText(ref, op, extend) {
+    const parts = ref.split(':').map(parsePart);
+    if (parts.some((p) => !p)) return ref;
+    if (parts[0].kind === 'col') return ref;
+    if (parts.length === 1) {
+      const nr = mapRow(parts[0].row, op); if (nr == null) return null;
+      parts[0].row = nr; return fmtPart(parts[0]);
+    }
+    const [a, b] = parts;
+    const lo = Math.min(a.row, b.row), hi = Math.max(a.row, b.row);
+    const res = mapRange(lo, hi, op, extend); if (!res) return null;
+    if (a.row <= b.row) { a.row = res[0]; b.row = res[1]; } else { b.row = res[0]; a.row = res[1]; }
+    return fmtPart(a) + ':' + fmtPart(b);
+  }
+  function shiftFormula(f, ownSheet, isOwnSheetFormula, op, extend) {
+    return mapRefs(f, (prefix, ref) => {
+      const sh = prefixSheet(prefix);
+      const target = sh == null ? (isOwnSheetFormula ? ownSheet : null) : sh;
+      if (target == null || target.toUpperCase() !== ownSheet.toUpperCase()) return prefix + ref;
+      const nr = shiftRefText(ref, op, extend);
+      return prefix + (nr == null ? '#REF!' : nr);
+    });
+  }
+  // copiar fórmula desplazada dr filas / dc columnas (solo partes relativas)
+  function translateFormula(f, dr, dc) {
+    if (!dr && !dc) return f;
+    return mapRefs(f, (prefix, ref) => {
+      if (prefixSheet(prefix) === '\u0000external') return prefix + ref;
+      const parts = ref.split(':').map(parsePart);
+      if (parts.some((p) => !p)) return prefix + ref;
+      for (const p of parts) {
+        if ((p.kind === 'cell' || p.kind === 'row') && !p.rAbs) p.row += dr;
+        if ((p.kind === 'cell' || p.kind === 'col') && !p.cAbs) p.col += dc;
+        if ((p.row !== undefined && p.row < 1) || (p.col !== undefined && p.col < 1)) return prefix + '#REF!';
+      }
+      return prefix + parts.map(fmtPart).join(':');
+    });
+  }
+  function shiftSqref(sqref, op) {
+    return sqref.split(/\s+/).filter(Boolean).map((r) => shiftRefText(r, op, true)).filter(Boolean).join(' ');
+  }
+
+  /* ---------- lectura del libro master ---------- */
+  function parseXml(text) {
+    const d = new DOMParser().parseFromString(text, 'application/xml');
+    if (d.getElementsByTagName('parsererror').length) throw new Error('XML inválido');
+    return d;
+  }
+  function serialize(doc) {
+    let s = new XMLSerializer().serializeToString(doc);
+    s = s.replace(/^<\?xml[^>]*\?>\s*/, '');
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n' + s;
+  }
+  function resolveTarget(base, target) {
+    if (target.startsWith('/')) return target.slice(1);
+    const parts = base.split('/'); parts.pop();
+    for (const seg of target.split('/')) { if (seg === '..') parts.pop(); else if (seg !== '.') parts.push(seg); }
+    return parts.join('/');
+  }
+
+  async function openMaster(buf) {
+    const zip = await JSZip.loadAsync(buf);
+    const wbXml = await zip.file('xl/workbook.xml').async('string');
+    const relsXml = await zip.file('xl/_rels/workbook.xml.rels').async('string');
+    const wb = parseXml(wbXml), rels = parseXml(relsXml);
+    const relMap = {};
+    for (const r of Array.from(rels.getElementsByTagName('Relationship'))) relMap[r.getAttribute('Id')] = r.getAttribute('Target');
+    const sheets = els(wb, 'sheet').map((s, idx) => ({
+      name: s.getAttribute('name'), idx,
+      path: resolveTarget('xl/workbook.xml', relMap[s.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id')]),
+    }));
+    let sst = [];
+    const ssf = zip.file('xl/sharedStrings.xml');
+    if (ssf) {
+      const d = parseXml(await ssf.async('string'));
+      sst = els(d, 'si').map((si) => els(si, 't').map((t) => t.textContent).join(''));
+    }
+    const master = { zip, sheets, sst, docs: {}, buf };
+    for (const sh of sheets) {
+      sh.protected = PROTECTED.includes(norm(sh.name));
+      if (sh.protected) continue;
+      const doc = parseXml(await zip.file(sh.path).async('string'));
+      const info = analyzeSheet(doc, sst);
+      if (info) { sh.info = info; master.docs[sh.name] = doc; }
+    }
+    return master;
+  }
+
+  function cellText(c, sst) {
+    const t = c.getAttribute('t'); const v = kid(c, 'v');
+    if (t === 's') return v ? sst[+v.textContent] : '';
+    if (t === 'inlineStr') { const is = kid(c, 'is'); return is ? els(is, 't').map((x) => x.textContent).join('') : ''; }
+    return v ? v.textContent : '';
+  }
+  function rowMap(doc) {
+    const sd = els(doc, 'sheetData')[0]; const m = new Map();
+    for (const r of kids(sd, 'row')) m.set(+r.getAttribute('r'), r);
+    return { sd, m };
+  }
+  function cellsOf(rowEl) { return kids(rowEl, 'c'); }
+  const cellCol = (c) => splitAddr(c.getAttribute('r')).col;
+
+  function analyzeSheet(doc, sst) {
+    const { m } = rowMap(doc);
+    let hdrRow = null, hdrCol = null;
+    for (let r = 1; r <= 15 && hdrRow == null; r++) {
+      const row = m.get(r); if (!row) continue;
+      for (const c of cellsOf(row)) if (norm(cellText(c, sst)) === 'CLAVE EMPLEADO') { hdrRow = r; hdrCol = cellCol(c); break; }
+    }
+    if (hdrRow == null) return null;
+    const headers = {}; // col -> text
+    const hdrEl = m.get(hdrRow);
+    for (const c of cellsOf(hdrEl)) {
+      const txt = cellText(c, sst); const hasF = !!kid(c, 'f');
+      if (txt !== '' || hasF) headers[cellCol(c)] = txt;
+    }
+    let lastCol = hdrCol; while (headers[lastCol + 1] !== undefined) lastCol++;
+    // fila de totales
+    const rowsSorted = Array.from(m.keys()).sort((a, b) => a - b);
+    let totRow = null;
+    for (const r of rowsSorted) {
+      if (r <= hdrRow) continue;
+      const c = cellsOf(m.get(r)).find((x) => cellCol(x) === hdrCol);
+      if (c && norm(cellText(c, sst)).startsWith('TOTAL')) { totRow = r; break; }
+    }
+    if (totRow == null) return { error: 'No se encontró la fila "Total"', hdrRow, hdrCol, lastCol, headers };
+    // última fila de datos según las fórmulas de la fila de totales
+    let lastData = null;
+    for (const c of cellsOf(m.get(totRow))) {
+      const f = kid(c, 'f'); if (!f || !f.textContent) continue;
+      mapRefs(f.textContent, (prefix, ref) => {
+        if (!prefix) {
+          const p = ref.split(':').map(parsePart);
+          if (p.length === 2 && p[0].kind === 'cell' && p[0].row === hdrRow + 1 && p[1].row < totRow) lastData = Math.max(lastData || 0, p[1].row);
+        }
+        return prefix + ref;
+      });
+    }
+    if (lastData == null) lastData = totRow - 1;
+    const formulaCols = new Set();
+    for (let r = hdrRow + 1; r <= lastData; r++) {
+      const row = m.get(r); if (!row) continue;
+      for (const c of cellsOf(row)) if (kid(c, 'f')) formulaCols.add(cellCol(c));
+    }
+    return { hdrRow, hdrCol, lastCol, headers, totRow, lastData, slots: lastData - hdrRow, formulaCols };
+  }
+
+  /* ---------- lectura de acumulados ---------- */
+  function readAcumulado(name, data) {
+    const wb = XLSX.read(data, { type: 'array', cellFormula: false, cellHTML: false });
+    for (const sn of wb.SheetNames) {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: null, blankrows: true });
+      let h = -1;
+      for (let i = 0; i < Math.min(rows.length, 20) && h < 0; i++) if ((rows[i] || []).some((v) => norm(v) === 'CLAVE EMPLEADO')) h = i;
+      if (h < 0) continue;
+      const headers = (rows[h] || []).map((v) => (v == null ? '' : String(v)));
+      const claveIdx = headers.findIndex((v) => norm(v) === 'CLAVE EMPLEADO');
+      const records = []; let totals = null;
+      for (let i = h + 1; i < rows.length; i++) {
+        const r = rows[i] || [];
+        const first = r[claveIdx];
+        if (norm(first).startsWith('TOTAL')) { totals = r; break; }
+        if (r.every((v) => v == null || v === '')) continue;
+        records.push(r);
+      }
+      return { name, sheet: sn, headers, records, totals };
+    }
+    throw new Error('No se encontró el encabezado "Clave Empleado"');
+  }
+  const baseName = (p) => p.split('/').pop().replace(/\.[^.]+$/, '');
+  const toks = (s) => s.split('_').map((p) => p.toUpperCase().replace(/[^A-Z0-9]/g, '')).filter(Boolean);
+  function guessSheet(fileName, sheetNames) {
+    const ft = new Set(toks(baseName(fileName)));
+    let best = null, bestLen = 0;
+    for (const s of sheetNames) {
+      const st = toks(s);
+      if (st.length && st.every((t) => ft.has(t)) && st.length > bestLen) { best = s; bestLen = st.length; }
+    }
+    return best;
+  }
+
+  function mapColumns(info, acum) {
+    const idx = {};
+    acum.headers.forEach((h, i) => { const k = norm(h); if (k && idx[k] === undefined) idx[k] = i; });
+    const mapped = [], formulaHit = [], usedIdx = new Set();
+    for (let c = info.hdrCol; c <= info.lastCol; c++) {
+      const h = norm(info.headers[c]); if (!h || idx[h] === undefined) continue;
+      if (info.formulaCols.has(c)) { formulaHit.push(info.headers[c]); continue; }
+      mapped.push({ col: c, src: idx[h], header: String(info.headers[c]).trim() });
+      usedIdx.add(idx[h]);
+    }
+    // percepciones (1-xxx) del acumulado que no tienen columna en el master
+    const missing = acum.headers.filter((h, i) => /^1-\d/.test(norm(h)) && !usedIdx.has(i) &&
+      acum.records.some((r) => typeof r[i] === 'number' && r[i] !== 0));
+    // validación de totales
+    const checks = mapped.filter((m) => !/CLAVE|NOM/.test(norm(m.header))).map((m) => {
+      const sum = acum.records.reduce((s, r) => s + (typeof r[m.src] === 'number' ? r[m.src] : 0), 0);
+      const tot = acum.totals && typeof acum.totals[m.src] === 'number' ? acum.totals[m.src] : null;
+      return { header: m.header, sum, tot, ok: tot == null || Math.abs(sum - tot) < 0.01 };
+    });
+    return { mapped, formulaHit, missing, checks };
+  }
+
+  /* ---------- operaciones sobre la hoja ---------- */
+  function unshareFormulas(doc) {
+    const masters = {};
+    const fs = els(doc, 'f');
+    for (const f of fs) if (f.getAttribute('t') === 'shared' && f.textContent) {
+      const c = f.parentNode; masters[f.getAttribute('si')] = { text: f.textContent, at: splitAddr(c.getAttribute('r')) };
+    }
+    for (const f of fs) {
+      if (f.getAttribute('t') !== 'shared') continue;
+      const mst = masters[f.getAttribute('si')]; if (!mst) continue;
+      const at = splitAddr(f.parentNode.getAttribute('r'));
+      if (!f.textContent) f.textContent = translateFormula(mst.text, at.row - mst.at.row, at.col - mst.at.col);
+      f.removeAttribute('t'); f.removeAttribute('ref'); f.removeAttribute('si');
+    }
+  }
+
+  function applyOpToSheet(doc, sheetName, op, info) {
+    const { sd, m } = rowMap(doc);
+    const dataTop = info.hdrRow + 1, dataBot = info.lastData;
+    // fórmulas
+    for (const f of els(doc, 'f')) {
+      const c = f.parentNode; const at = splitAddr(c.getAttribute('r'));
+      const inData = at.row >= dataTop && at.row <= dataBot;
+      if (f.textContent) f.textContent = shiftFormula(f.textContent, sheetName, true, op, !inData);
+      const ref = f.getAttribute('ref');
+      if (ref) { const nr = shiftRefText(ref, op, false); if (nr) f.setAttribute('ref', nr); }
+    }
+    // filas y celdas
+    for (const [r, rowEl] of m) {
+      const nr = mapRow(r, op);
+      if (nr == null) { sd.removeChild(rowEl); continue; }
+      if (nr !== r) {
+        rowEl.setAttribute('r', nr);
+        for (const c of cellsOf(rowEl)) c.setAttribute('r', addr(cellCol(c), nr));
+      }
+    }
+    // elementos con rangos fuera de sheetData
+    const dim = els(doc, 'dimension')[0];
+    if (dim) { const nr = shiftRefText(dim.getAttribute('ref'), op, false); if (nr) dim.setAttribute('ref', nr); }
+    for (const mc of els(doc, 'mergeCell')) {
+      const nr = shiftRefText(mc.getAttribute('ref'), op, false);
+      if (!nr || !nr.includes(':')) mc.parentNode.removeChild(mc); else mc.setAttribute('ref', nr);
+    }
+    const mcs = els(doc, 'mergeCells')[0];
+    if (mcs) { const n = kids(mcs, 'mergeCell').length; if (n) mcs.setAttribute('count', n); else mcs.parentNode.removeChild(mcs); }
+    for (const tag of ['conditionalFormatting', 'dataValidation']) {
+      for (const e of els(doc, tag)) {
+        const sq = shiftSqref(e.getAttribute('sqref') || '', op);
+        if (!sq) { e.parentNode.removeChild(e); continue; }
+        e.setAttribute('sqref', sq);
+        if (tag === 'conditionalFormatting') for (const fe of els(e, 'formula')) fe.textContent = shiftFormula(fe.textContent, sheetName, true, op, true);
+      }
+    }
+    const dvs = els(doc, 'dataValidations')[0];
+    if (dvs) dvs.setAttribute('count', kids(dvs, 'dataValidation').length);
+    for (const tag of ['autoFilter', 'hyperlink']) for (const e of els(doc, tag)) {
+      const nr = shiftRefText(e.getAttribute('ref') || '', op, true); if (nr) e.setAttribute('ref', nr);
+    }
+  }
+
+  // copia una celda plantilla a otra fila: conserva estilo, ajusta fórmula, sin valores
+  function cloneCellTo(c, col, r, dr) {
+    const nc = c.cloneNode(true); nc.setAttribute('r', addr(col, r));
+    const f = kid(nc, 'f');
+    for (const ch of Array.from(nc.childNodes)) if (ch.nodeType === 1 && ch.localName !== 'f') nc.removeChild(ch);
+    nc.removeAttribute('t');
+    if (f) {
+      if (f.textContent) f.textContent = translateFormula(f.textContent, dr, 0);
+      if (f.getAttribute('ref')) f.setAttribute('ref', addr(col, r));
+    } else nc.removeAttribute('cm');
+    return nc;
+  }
+  // última fila de datos que trae fórmulas (es la plantilla de las filas nuevas)
+  function templateRow(doc, info) {
+    const { m } = rowMap(doc);
+    for (let r = info.lastData; r > info.hdrRow; r--) {
+      const row = m.get(r);
+      if (row && cellsOf(row).some((c) => cellCol(c) <= info.lastCol && kid(c, 'f'))) return r;
+    }
+    return info.lastData;
+  }
+
+  function insertRows(doc, sheetName, info, n) {
+    const k = info.lastData + 1;
+    const op = { kind: 'ins', k, n, lastData: info.lastData };
+    const tplNum = templateRow(doc, info);
+    unshareFormulas(doc);
+    applyOpToSheet(doc, sheetName, op, info);
+    const { sd, m } = rowMap(doc);
+    const tpl = m.get(tplNum);
+    const after = Array.from(m.keys()).filter((r) => r > info.lastData).sort((a, b) => a - b)[0];
+    const anchor = after != null ? m.get(after) : null;
+    for (let i = 0; i < n; i++) {
+      const r = k + i;
+      const row = doc.createElementNS(NS, 'row');
+      if (tpl) for (const a of Array.from(tpl.attributes)) row.setAttribute(a.name, a.value);
+      row.setAttribute('r', r);
+      if (tpl) for (const c of cellsOf(tpl)) {
+        const col = cellCol(c); if (col > info.lastCol) continue;
+        row.appendChild(cloneCellTo(c, col, r, r - tplNum));
+      }
+      sd.insertBefore(row, anchor);
+    }
+    shiftDefinedNames.push({ sheetName, op });
+    info.lastData += n; info.totRow += n; info.slots += n;
+  }
+
+  // filas de datos del master que venían sin las fórmulas de la tabla: se completan
+  // solo en celdas vacías, copiando la fórmula de la fila plantilla
+  function completeFormulas(doc, info) {
+    const tplNum = templateRow(doc, info);
+    const { m } = rowMap(doc); const tpl = m.get(tplNum); if (!tpl) return 0;
+    const fcells = cellsOf(tpl).filter((c) => cellCol(c) <= info.lastCol && kid(c, 'f'));
+    if (!fcells.length) return 0;
+    let added = 0;
+    for (let r = info.hdrRow + 1; r <= info.lastData; r++) {
+      if (r === tplNum) continue;
+      const rowEl = getRow(doc, r);
+      for (const fc of fcells) {
+        const col = cellCol(fc);
+        let target = null, before = null;
+        for (const c of cellsOf(rowEl)) { const cc = cellCol(c); if (cc === col) { target = c; break; } if (cc > col) { before = c; break; } }
+        if (target && (kid(target, 'f') || kid(target, 'v') || kid(target, 'is'))) continue;
+        const nc = cloneCellTo(fc, col, r, r - tplNum);
+        if (target) rowEl.replaceChild(nc, target); else rowEl.insertBefore(nc, before);
+        added++;
+      }
+    }
+    return added;
+  }
+
+  function rowsSafeToDelete(doc, info, a, b) {
+    const { m } = rowMap(doc);
+    for (let r = a; r <= b; r++) {
+      const row = m.get(r); if (!row) continue;
+      for (const c of cellsOf(row)) if (cellCol(c) > info.lastCol && (kid(c, 'f') || kid(c, 'v') || kid(c, 'is'))) return false;
+    }
+    for (const mc of els(doc, 'mergeCell')) {
+      const [p, q] = mc.getAttribute('ref').split(':').map(splitAddr);
+      if (q && p.row < a && q.row >= a) return false;
+      if (q && p.row <= b && q.row > b) return false;
+    }
+    return true;
+  }
+  function deleteRows(doc, sheetName, info, a, b) {
+    const op = { kind: 'del', a, b };
+    unshareFormulas(doc);
+    applyOpToSheet(doc, sheetName, op, info);
+    shiftDefinedNames.push({ sheetName, op });
+    const cnt = b - a + 1; info.lastData -= cnt; info.totRow -= cnt; info.slots -= cnt;
+  }
+
+  let shiftDefinedNames = [];
+
+  function setCellValue(doc, rowEl, col, rowNum, val) {
+    let target = null, before = null;
+    for (const c of cellsOf(rowEl)) { const cc = cellCol(c); if (cc === col) { target = c; break; } if (cc > col) { before = c; break; } }
+    if (!target) {
+      if (val === null || val === undefined || val === '') return;
+      target = doc.createElementNS(NS, 'c'); target.setAttribute('r', addr(col, rowNum));
+      rowEl.insertBefore(target, before);
+    }
+    if (kid(target, 'f')) return false; // nunca se escribe sobre una fórmula
+    for (const ch of Array.from(target.childNodes)) target.removeChild(ch);
+    target.removeAttribute('t');
+    if (val === null || val === undefined || val === '') return true;
+    if (typeof val === 'number' && isFinite(val)) {
+      const v = doc.createElementNS(NS, 'v'); v.textContent = String(val); target.appendChild(v);
+    } else if (typeof val === 'boolean') {
+      target.setAttribute('t', 'b'); const v = doc.createElementNS(NS, 'v'); v.textContent = val ? '1' : '0'; target.appendChild(v);
+    } else {
+      target.setAttribute('t', 'inlineStr');
+      const is = doc.createElementNS(NS, 'is'); const t = doc.createElementNS(NS, 't');
+      const s = String(val); if (/^\s|\s$/.test(s)) t.setAttributeNS(XML_NS, 'xml:space', 'preserve');
+      t.textContent = s; is.appendChild(t); target.appendChild(is);
+    }
+    return true;
+  }
+  function getRow(doc, r) {
+    const { sd, m } = rowMap(doc);
+    if (m.has(r)) return m.get(r);
+    const row = doc.createElementNS(NS, 'row'); row.setAttribute('r', r);
+    const after = Array.from(m.keys()).filter((x) => x > r).sort((a, b) => a - b)[0];
+    sd.insertBefore(row, after != null ? m.get(after) : null); return row;
+  }
+
+  /* ---------- proceso completo ---------- */
+  async function analyze(masterBuf, files) {
+    const master = await openMaster(masterBuf);
+    const targetNames = master.sheets.filter((s) => s.info && !s.info.error).map((s) => s.name);
+    const acums = [];
+    for (const f of files) {
+      try {
+        const a = readAcumulado(f.name, f.data);
+        a.sheetGuess = guessSheet(f.name, targetNames);
+        acums.push(a);
+      } catch (e) { acums.push({ name: f.name, error: e.message || String(e) }); }
+    }
+    return { master, acums, targetNames };
+  }
+
+  function planFor(master, acum, sheetName) {
+    const sh = master.sheets.find((s) => s.name === sheetName);
+    if (!sh || !sh.info) return null;
+    const cols = mapColumns(sh.info, acum);
+    const N = Math.max(acum.records.length, 1);
+    return { sheet: sheetName, info: sh.info, employees: acum.records.length, slots: sh.info.slots, delta: N - sh.info.slots, ...cols };
+  }
+
+  async function build(state, assignment /* {fileName: sheetName} */) {
+    const { master, acums } = state;
+    // reabrir para trabajar sobre una copia limpia
+    const fresh = await openMaster(master.buf);
+    shiftDefinedNames = [];
+    const report = [];
+    const used = new Set();
+    for (const acum of acums) {
+      if (acum.error) continue;
+      const sheetName = assignment[acum.name];
+      if (!sheetName || used.has(sheetName)) continue;
+      used.add(sheetName);
+      const sh = fresh.sheets.find((s) => s.name === sheetName);
+      const doc = fresh.docs[sheetName]; const info = sh.info;
+      const cols = mapColumns(info, acum);
+      const N = acum.records.length; const want = Math.max(N, 1);
+      let action = 'igual', note = '';
+      if (want > info.slots) { const n = want - info.slots; insertRows(doc, sheetName, info, n); action = `+${n} filas`; }
+      else if (want < info.slots) {
+        const a = info.hdrRow + 1 + want, b = info.lastData;
+        if (rowsSafeToDelete(doc, info, a, b)) { deleteRows(doc, sheetName, info, a, b); action = `−${b - a + 1} filas`; }
+        else { action = 'sin eliminar'; note = `Quedan ${b - a + 1} filas vacías: comparten renglón con otra tabla de la hoja.`; }
+      }
+      unshareFormulas(doc);
+      const filled = completeFormulas(doc, info);
+      if (filled) note = (note ? note + ' ' : '') + `Se completaron ${filled} fórmulas en filas de la plantilla que venían sin ellas.`;
+      // escribir valores
+      let written = 0;
+      for (let i = 0; i < info.slots; i++) {
+        const r = info.hdrRow + 1 + i; const rec = acum.records[i];
+        const rowEl = getRow(doc, r);
+        for (const mp of cols.mapped) {
+          const v = rec ? rec[mp.src] : null;
+          if (setCellValue(doc, rowEl, mp.col, r, v) && rec && v !== null && v !== '') written++;
+        }
+      }
+      // quitar resultados en caché de las fórmulas para que se recalculen al abrir
+      for (const f of els(doc, 'f')) { const c = f.parentNode; for (const v of kids(c, 'v')) c.removeChild(v); c.removeAttribute('t'); }
+      fresh.zip.file(sh.path, serialize(doc));
+      report.push({ sheet: sheetName, file: acum.name, employees: N, action, note, columns: cols.mapped.length, cells: written,
+        missing: cols.missing, checks: cols.checks, totRow: info.totRow, firstRow: info.hdrRow + 1, lastRow: info.lastData });
+    }
+    // nombres definidos (filtros) del libro
+    if (shiftDefinedNames.length) {
+      const wb = parseXml(await fresh.zip.file('xl/workbook.xml').async('string'));
+      for (const dn of els(wb, 'definedName')) {
+        let t = dn.textContent;
+        for (const { sheetName, op } of shiftDefinedNames) t = shiftFormula(t, sheetName, false, op, true);
+        dn.textContent = t;
+      }
+      // otras hojas que apunten a hojas modificadas (solo si existen referencias)
+      for (const sh of fresh.sheets) {
+        if (used.has(sh.name)) continue;
+        const txt = await fresh.zip.file(sh.path).async('string');
+        const hits = shiftDefinedNames.filter(({ sheetName }) => txt.includes(sheetName + '!') || txt.includes(sheetName.replace(/'/g, "''") + "'!"));
+        if (!hits.length) continue;
+        const d = parseXml(txt);
+        let changed = false;
+        for (const f of els(d, 'f')) {
+          let t = f.textContent; const orig = t;
+          for (const { sheetName, op } of hits) t = shiftFormula(t, sheetName, false, op, true);
+          if (t !== orig) { f.textContent = t; changed = true; }
+        }
+        if (changed) fresh.zip.file(sh.path, serialize(d));
+      }
+      fresh.zip.file('xl/workbook.xml', serialize(wb));
+    }
+    // recalcular al abrir y descartar la cadena de cálculo (Excel la reconstruye)
+    {
+      const wbx = await fresh.zip.file('xl/workbook.xml').async('string');
+      const wb = parseXml(wbx);
+      let cp = els(wb, 'calcPr')[0];
+      if (!cp) { cp = wb.createElementNS(NS, 'calcPr'); wb.documentElement.appendChild(cp); }
+      cp.setAttribute('fullCalcOnLoad', '1');
+      fresh.zip.file('xl/workbook.xml', serialize(wb));
+      if (fresh.zip.file('xl/calcChain.xml')) {
+        fresh.zip.remove('xl/calcChain.xml');
+        const ct = await fresh.zip.file('[Content_Types].xml').async('string');
+        fresh.zip.file('[Content_Types].xml', ct.replace(/<Override[^>]*PartName="\/xl\/calcChain\.xml"[^>]*\/>/, ''));
+        const rl = await fresh.zip.file('xl/_rels/workbook.xml.rels').async('string');
+        fresh.zip.file('xl/_rels/workbook.xml.rels', rl.replace(/<Relationship[^>]*Target="(\/xl\/)?calcChain\.xml"[^>]*\/>/, ''));
+      }
+    }
+    const blob = await fresh.zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 },
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    return { blob, report };
+  }
+
+  async function expandUploads(fileList) {
+    const out = [];
+    for (const f of fileList) {
+      const buf = await f.arrayBuffer();
+      if (/\.zip$/i.test(f.name)) {
+        const z = await JSZip.loadAsync(buf);
+        const entries = Object.values(z.files).filter((e) => !e.dir && /\.(xls|xlsx|xlsm)$/i.test(e.name) && !/(^|\/)(__MACOSX|~\$)/.test(e.name) && !/(^|\/)\./.test(e.name.split('/').pop()));
+        for (const e of entries) out.push({ name: e.name.split('/').pop(), data: await e.async('arraybuffer') });
+      } else if (/\.(xls|xlsx|xlsm)$/i.test(f.name)) out.push({ name: f.name, data: buf });
+    }
+    return out;
+  }
+
+  global.ISN = { analyze, planFor, build, expandUploads, _t: { shiftFormula, translateFormula, shiftRefText, norm, guessSheet } };
+})(window);
+
+</script>
+<script>
+(function(){
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const fmt = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let masterFile = null, acumFiles = [], state = null, assign = {}, result = null, masterName = 'Master ISN';
+
+  function setStatus(t, cls) { const s = $('status'); s.textContent = t; s.className = 'status' + (cls ? ' ' + cls : ''); }
+
+  function wireDrop(drop, input, onFiles) {
+    input.addEventListener('change', () => { if (input.files.length) onFiles(Array.from(input.files)); input.value = ''; });
+    ['dragenter', 'dragover'].forEach((e) => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach((e) => drop.addEventListener(e, () => drop.classList.remove('over')));
+    drop.addEventListener('drop', (ev) => { ev.preventDefault(); if (ev.dataTransfer.files.length) onFiles(Array.from(ev.dataTransfer.files)); });
+  }
+  wireDrop($('dropMaster'), $('inMaster'), (fs) => {
+    const f = fs.find((x) => /\.xlsx?m?$/i.test(x.name)) || fs[0];
+    masterFile = f; masterName = f.name.replace(/\.[^.]+$/, '');
+    $('dropMaster').classList.add('done'); $('mDesc').hidden = true;
+    $('mName').hidden = false; $('mName').textContent = f.name;
+    $('mMeta').hidden = false; $('mMeta').textContent = (f.size / 1024).toFixed(0) + ' KB';
+    refresh();
+  });
+  wireDrop($('dropAcum'), $('inAcum'), async (fs) => {
+    setStatus('Leyendo acumulados…');
+    try {
+      acumFiles = await ISN.expandUploads(fs);
+      $('dropAcum').classList.add('done'); $('aDesc').hidden = true;
+      $('aName').hidden = false; $('aName').textContent = fs.map((f) => f.name).join(', ');
+      $('aMeta').hidden = false; $('aMeta').textContent = acumFiles.length + ' archivos de Excel encontrados';
+      if (!acumFiles.length) setStatus('El ZIP no trae archivos .xls o .xlsx.', 'err');
+      refresh();
+    } catch (e) { setStatus('No se pudo abrir el ZIP: ' + (e.message || e), 'err'); }
+  });
+
+  async function refresh() {
+    result = null; $('btnSave').hidden = true;
+    if (!masterFile || !acumFiles.length) { $('btnGen').disabled = true; return; }
+    setStatus('Analizando…');
+    try {
+      state = await ISN.analyze(await masterFile.arrayBuffer(), acumFiles);
+      assign = {};
+      for (const a of state.acums) if (!a.error) assign[a.name] = a.sheetGuess || '';
+      render();
+    } catch (e) { console.error(e); setStatus('No se pudo leer el Master: ' + (e.message || e), 'err'); $('btnGen').disabled = true; }
+  }
+
+  function render() {
+    $('howBox').hidden = true; $('review').hidden = false;
+    const counts = {};
+    for (const k in assign) if (assign[k]) counts[assign[k]] = (counts[assign[k]] || 0) + 1;
+    const tb = $('rows'); tb.innerHTML = '';
+    let emp = 0, alerts = 0, ready = 0, dup = false;
+    for (const a of state.acums) {
+      const tr = document.createElement('tr');
+      if (a.error) {
+        tr.innerHTML = `<td class="file">${esc(a.name)}</td><td colspan="5" class="idle">${esc(a.error)}</td><td><span class="pill p-bad">No se leyó</span></td>`;
+        tb.appendChild(tr); alerts++; continue;
+      }
+      const sel = assign[a.name] || '';
+      const opts = ['<option value="">— no llenar —</option>'].concat(state.targetNames.map((n) => `<option value="${esc(n)}"${n === sel ? ' selected' : ''}>${esc(n)}</option>`)).join('');
+      let cells = `<td class="file">${esc(a.name)}</td><td><select data-f="${esc(a.name)}" aria-label="Pestaña para ${esc(a.name)}">${opts}</select></td><td class="n">${a.records.length}</td>`;
+      if (!sel) {
+        cells += `<td class="n">—</td><td><span class="pill p-neutral">Sin pestaña</span></td><td class="n">—</td><td><span class="pill p-warn">Elegir pestaña</span></td>`;
+        alerts++;
+      } else {
+        const p = ISN.planFor(state.master, a, sel);
+        emp += a.records.length; ready++;
+        const isDup = counts[sel] > 1; if (isDup) dup = true;
+        const adj = p.delta > 0 ? `<span class="pill p-acc">+${p.delta} ${p.delta === 1 ? 'fila' : 'filas'}</span>` : p.delta < 0 ? `<span class="pill p-acc">−${-p.delta} ${p.delta === -1 ? 'fila' : 'filas'}</span>` : '<span class="pill p-neutral">Igual</span>';
+        const badChecks = p.checks.filter((c) => !c.ok);
+        let val;
+        if (isDup) { val = '<span class="pill p-bad">Pestaña repetida</span>'; alerts++; }
+        else if (p.missing.length) { val = `<span class="pill p-warn">${p.missing.length} sin columna</span>`; alerts++; }
+        else if (badChecks.length) { val = '<span class="pill p-warn">Total no cuadra</span>'; alerts++; }
+        else val = '<span class="pill p-ok">Cuadra</span>';
+        const colList = p.mapped.map((m) => `<li>${esc(m.header)}</li>`).join('') + p.missing.map((h) => `<li class="miss" title="Percepción con importe que no tiene columna en la pestaña">${esc(h)}</li>`).join('');
+        const sumSal = p.checks.find((c) => /^1-002/.test(c.header));
+        cells += `<td class="n">${p.slots}</td><td>${adj}</td><td class="n">${p.mapped.length}</td><td>${val}`
+          + (sumSal ? `<div class="sub">Salario ${fmt.format(sumSal.sum)}</div>` : '')
+          + `<details><summary>Ver columnas</summary><ul class="cols">${colList}</ul>`
+          + (p.missing.length ? `<div class="sub">En rojo: percepciones del acumulado que no tienen columna en esta pestaña; no se copian.</div>` : '')
+          + (badChecks.length ? `<div class="sub">${badChecks.map((c) => esc(c.header) + ': suma ' + fmt.format(c.sum) + ' vs total ' + fmt.format(c.tot)).join('<br>')}</div>` : '')
+          + `</details></td>`;
+      }
+      tr.innerHTML = cells; tb.appendChild(tr);
+    }
+    tb.querySelectorAll('select').forEach((s) => s.addEventListener('change', () => { assign[s.dataset.f] = s.value; result = null; $('btnSave').hidden = true; render(); }));
+    const used = new Set(Object.values(assign).filter(Boolean));
+    const rest = state.targetNames.filter((n) => !used.has(n));
+    $('untouched').textContent = rest.length ? 'Pestañas sin acumulado (se quedan como están): ' + rest.join(', ') + '.' : 'Todas las pestañas del Master tienen acumulado.';
+    $('summary').innerHTML = `<div class="stat"><strong>${ready}</strong><span>pestañas a llenar</span></div><div class="stat"><strong>${emp}</strong><span>empleados</span></div><div class="stat"><strong>${alerts}</strong><span>${alerts === 1 ? 'alerta' : 'alertas'}</span></div>`;
+    $('btnGen').disabled = !ready || dup;
+    if (dup) setStatus('Dos archivos apuntan a la misma pestaña. Corrige la selección para continuar.', 'err');
+    else if (!result) setStatus(ready ? 'Revisa la tabla y genera el Master.' : 'Ningún archivo tiene pestaña asignada.');
+  }
+
+  $('btnGen').addEventListener('click', async () => {
+    $('btnGen').disabled = true; setStatus('Generando…');
+    try {
+      result = await ISN.build(state, assign);
+      const notes = result.report.filter((r) => r.note).map((r) => r.sheet + ': ' + r.note);
+      const filas = result.report.reduce((s, r) => s + r.employees, 0);
+      setStatus(`Listo: ${result.report.length} pestañas llenadas con ${filas} empleados.` + (notes.length ? ' ' + notes.join(' ') : ''), 'ok');
+      $('btnSave').hidden = false;
+    } catch (e) { console.error(e); setStatus('No se pudo generar: ' + (e.message || e), 'err'); }
+    $('btnGen').disabled = false;
+  });
+
+  $('btnSave').addEventListener('click', async () => {
+    if (!result) return;
+    const filename = masterName.replace(/\s*-\s*lleno$/i, '') + ' - lleno.xlsx';
+    const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
+    if (dl) {
+      try { await dl.save({ filename, data: result.blob }); setStatus('Archivo guardado: ' + filename, 'ok'); }
+      catch (e) {
+        if (e && e.code === 'declined') setStatus('Descarga cancelada.');
+        else if (e && e.code === 'rate_limited') setStatus('Ya hay una descarga pendiente de confirmar.');
+        else setStatus('No se pudo descargar aquí (' + ((e && e.code) || 'error') + ').', 'err');
+      }
+      return;
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(result.blob); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  });
+})();
+</script>
+
+</body>
+</html>
